@@ -270,7 +270,7 @@ class Page(Element):
     def extra_repr(self) -> str:
         return f"dimensions={self.dimensions}"
 
-    def show(self, interactive: bool = True, preserve_aspect_ratio: bool = False, **kwargs) -> None:
+    def show(self, interactive: bool = True, preserve_aspect_ratio: bool = True, **kwargs) -> None:
         """Overlay the result on a given image
 
         Args:

@@ -172,7 +172,7 @@ def visualize_page(
     image: np.ndarray,
     words_only: bool = False,
     display_artefacts: bool = False,
-    scale: float = 10,
+    scale: float = 1,
     interactive: bool = False,
     add_labels: bool = False,
     **kwargs: Any,
@@ -206,7 +206,9 @@ def visualize_page(
     """
     # Get proper scale and aspect ratio
     h, w = image.shape[:2]
-    size = (scale * w / h, scale) if h > w else (scale, h / w * scale)
+    print(h)
+    size = (w/100, h/100)
+    print(size)
     fig, ax = plt.subplots(figsize=size)
     # Display the image
     ax.imshow(image)
@@ -388,7 +390,7 @@ def visualize_kie_page(
     """
     # Get proper scale and aspect ratio
     h, w = image.shape[:2]
-    size = (scale * w / h, scale) if h > w else (scale, h / w * scale)
+    size = (w/100, h/100)
     fig, ax = plt.subplots(figsize=size)
     # Display the image
     ax.imshow(image)
