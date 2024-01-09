@@ -6,19 +6,19 @@
 
 import os
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+os.environ["USE_TORCH"] = "1"
 
 from doctr.file_utils import is_tf_available
 from doctr.io import DocumentFile
 from doctr.models import ocr_predictor
 
 # Enable GPU growth if using TF
-if is_tf_available():
-    import tensorflow as tf
+# if is_tf_available():
+#     import tensorflow as tf
 
-    gpu_devices = tf.config.experimental.list_physical_devices("GPU")
-    if any(gpu_devices):
-        tf.config.experimental.set_memory_growth(gpu_devices[0], True)
+#     gpu_devices = tf.config.experimental.list_physical_devices("GPU")
+#     if any(gpu_devices):
+#         tf.config.experimental.set_memory_growth(gpu_devices[0], True)
 
 
 def main(args):
@@ -32,7 +32,9 @@ def main(args):
     out = model(doc)
 
     for page in out.pages:
-        page.show(block=not args.noblock, interactive=not args.static)
+        page.show()
+        # result = page.show()
+        # print(result)
 
 
 def parse_args():

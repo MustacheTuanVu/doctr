@@ -18,6 +18,9 @@ from unidecode import unidecode
 from .common_types import BoundingBox, Polygon4P
 from .fonts import get_font
 
+import matplotlib
+matplotlib.use('agg')
+
 __all__ = ["visualize_page", "synthesize_page", "visualize_kie_page", "synthesize_kie_page", "draw_boxes"]
 
 
@@ -167,11 +170,11 @@ def get_colors(num_colors: int) -> List[Tuple[float, float, float]]:
 def visualize_page(
     page: Dict[str, Any],
     image: np.ndarray,
-    words_only: bool = True,
-    display_artefacts: bool = True,
+    words_only: bool = False,
+    display_artefacts: bool = False,
     scale: float = 10,
-    interactive: bool = True,
-    add_labels: bool = True,
+    interactive: bool = False,
+    add_labels: bool = False,
     **kwargs: Any,
 ) -> Figure:
     """Visualize a full page with predicted blocks, lines and words
@@ -238,7 +241,8 @@ def visualize_page(
                     word["geometry"],
                     page["dimensions"],
                     label=f"{word['value']} (confidence: {word['confidence']:.2%})",
-                    color=(0, 0, 1),
+                    color=(1, 1, 1),
+                    alpha=1,
                     **kwargs,
                 )
                 ax.add_patch(rect)

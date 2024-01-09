@@ -5,7 +5,7 @@ ENV LANG=C.UTF-8
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-ARG SYSTEM=gpu
+ARG SYSTEM=false
 
 # Enroll NVIDIA GPG public key and install CUDA
 RUN if [ "$SYSTEM" = "gpu" ]; then \
@@ -68,7 +68,7 @@ RUN wget http://www.python.org/ftp/python/$PYTHON_VERSION/Python-$PYTHON_VERSION
 ENV PATH=/opt/python/bin:$PATH
 
 # Install docTR
-ARG FRAMEWORK=tf
+ARG FRAMEWORK=torch
 ARG DOCTR_REPO='mindee/doctr'
 ARG DOCTR_VERSION=main
 RUN pip3 install -U pip setuptools wheel && \

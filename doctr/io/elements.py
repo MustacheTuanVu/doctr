@@ -21,6 +21,9 @@ from doctr.utils.geometry import resolve_enclosing_bbox, resolve_enclosing_rbbox
 from doctr.utils.repr import NestedObject
 from doctr.utils.visualization import synthesize_kie_page, synthesize_page, visualize_kie_page, visualize_page
 
+import base64
+import io
+
 __all__ = ["Element", "Word", "Artefact", "Line", "Prediction", "Block", "Page", "KIEPage", "Document"]
 
 
@@ -261,6 +264,7 @@ class Page(Element):
 
     def render(self, block_break: str = "\n\n") -> str:
         """Renders the full text of the element"""
+        print('here 1')
         return block_break.join(b.render() for b in self.blocks)
 
     def extra_repr(self) -> str:
@@ -274,8 +278,19 @@ class Page(Element):
             preserve_aspect_ratio: pass True if you passed True to the predictor
             **kwargs: additional keyword arguments passed to the matplotlib.pyplot.show method
         """
+        print('here 2')
         visualize_page(self.export(), self.page, interactive=interactive, preserve_aspect_ratio=preserve_aspect_ratio)
-        plt.show(**kwargs)
+
+        # Convert the plot to a PNG image in memory
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format='png')
+        buffer.seek(0)
+
+        # Encode the PNG image as base64
+        base64_image = base64.b64encode(buffer.read()).decode('utf-8')
+        return base64_image
+
+        # plt.show(**kwargs)
 
     def synthesize(self, **kwargs) -> np.ndarray:
         """Synthesize the page from the predictions
