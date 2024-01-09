@@ -69,7 +69,7 @@ ENV PATH=/opt/python/bin:$PATH
 
 # Install docTR
 ARG FRAMEWORK=torch
-ARG DOCTR_REPO='mindee/doctr'
+ARG DOCTR_REPO='MustacheTuanVu/doctr'
 ARG DOCTR_VERSION=main
 RUN pip3 install -U pip setuptools wheel && \
     pip3 install "python-doctr[$FRAMEWORK]@git+https://github.com/$DOCTR_REPO.git@$DOCTR_VERSION"
