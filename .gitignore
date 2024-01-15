@@ -138,3 +138,6 @@ wandb/
 *.pt
 *.pb
 *.index
+api/.DS_Store
+.github/.DS_Store
+.DS_Store

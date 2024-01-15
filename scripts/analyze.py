@@ -32,9 +32,9 @@ def main(args):
     out = model(doc)
 
     for page in out.pages:
-        page.show()
-        # result = page.show()
-        # print(result)
+        # page.show()
+        result = page.show()
+        print(result)
 
 
 def parse_args():

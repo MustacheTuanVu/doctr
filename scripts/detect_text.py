@@ -10,19 +10,19 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+os.environ["USE_TORCH"] = "1"
 
 from doctr.file_utils import is_tf_available
 from doctr.io import DocumentFile
 from doctr.models import detection, ocr_predictor
 
 # Enable GPU growth if using TF
-if is_tf_available():
-    import tensorflow as tf
+# if is_tf_available():
+#     import tensorflow as tf
 
-    gpu_devices = tf.config.experimental.list_physical_devices("GPU")
-    if any(gpu_devices):
-        tf.config.experimental.set_memory_growth(gpu_devices[0], True)
+#     gpu_devices = tf.config.experimental.list_physical_devices("GPU")
+#     if any(gpu_devices):
+#         tf.config.experimental.set_memory_growth(gpu_devices[0], True)
 
 IMAGE_FILE_EXTENSIONS = [".jpeg", ".jpg", ".png", ".tif", ".tiff", ".bmp"]
 OTHER_EXTENSIONS = [".pdf"]
@@ -47,6 +47,8 @@ def _process_file(model, file_path: Path, out_format: str) -> None:
         output = out.render()
     elif out_format == "xml":
         output = out.export_as_xml()
+
+    print(out)
 
     path = Path("output").joinpath(file_path.stem + "." + out_format)
     if out_format == "xml":
@@ -84,7 +86,7 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("path", type=str, help="Path to process: PDF, image, directory")
-    parser.add_argument("--detection", type=str, default="db_resnet50", help="Text detection model to use for analysis")
+    parser.add_argument("--detection", type=str, default="linknet_resnet50", help="Text detection model to use for analysis")
     parser.add_argument("--bin-thresh", type=float, default=0.3, help="Binarization threshold for the detection model.")
     parser.add_argument(
         "--recognition", type=str, default="crnn_vgg16_bn", help="Text recognition model to use for analysis"
