@@ -72,6 +72,7 @@ ARG FRAMEWORK=torch
 ARG DOCTR_REPO='MustacheTuanVu/doctr'
 ARG DOCTR_VERSION=main
 RUN pip3 install flask
+RUN pip3 install flask_cors
 RUN pip3 install -U pip setuptools wheel && \
     pip3 install "python-doctr[$FRAMEWORK]@git+https://github.com/$DOCTR_REPO.git@$DOCTR_VERSION"
 
