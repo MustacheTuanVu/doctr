@@ -262,7 +262,7 @@ class Page(Element):
         self.orientation = orientation if isinstance(orientation, dict) else dict(value=None, confidence=None)
         self.language = language if isinstance(language, dict) else dict(value=None, confidence=None)
 
-    def render(self, block_break: str = "\n\n") -> str:
+    def render(self, block_break: str = "***********") -> str:
         """Renders the full text of the element"""
         print('here 1')
         return block_break.join(b.render() for b in self.blocks)
