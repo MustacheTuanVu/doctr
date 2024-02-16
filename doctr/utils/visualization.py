@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import mplcursors
 import numpy as np
 from matplotlib.figure import Figure
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 from unidecode import unidecode
 
 from .common_types import BoundingBox, Polygon4P
@@ -166,6 +166,47 @@ def get_colors(num_colors: int) -> List[Tuple[float, float, float]]:
         colors.append(colorsys.hls_to_rgb(hue, lightness, saturation))
     return colors
 
+def blur_geometry(
+    geometry: BoundingBox,
+    page_image: np.ndarray,
+    preserve_aspect_ratio: bool = False,
+    blur_radius: int = 2
+) -> Image:
+    """Apply Gaussian blur to the region defined by the geometry on the page image.
+
+    Args:
+        geometry: bounding box of the region to be blurred
+        page_image: numpy array representing the page image
+        preserve_aspect_ratio: whether to preserve the aspect ratio of the bounding box
+        blur_radius: radius of the Gaussian blur kernel
+
+    Returns:
+        PIL Image with the specified region blurred
+    """
+    # Unpack
+    height, width = page_image.shape[:2]
+    (xmin, ymin), (xmax, ymax) = geometry
+    
+    # Switch to absolute coords
+    if preserve_aspect_ratio:
+        width = height = max(height, width)
+    xmin, w = xmin * width, (xmax - xmin) * width
+    ymin, h = ymin * height, (ymax - ymin) * height
+
+    # Convert numpy array to PIL Image
+    page_pil = Image.fromarray(page_image)
+    
+    # Define region to blur
+    region = (int(xmin), int(ymin), int(xmin + w), int(ymin + h))
+    
+    # Apply Gaussian blur to the region
+    blurred_image = page_pil.crop(region)
+    blurred_image = blurred_image.filter(ImageFilter.GaussianBlur(blur_radius))
+    
+    # Paste the blurred region back onto the original image
+    page_pil.paste(blurred_image, region)
+    
+    return page_pil
 
 def visualize_page(
     page: Dict[str, Any],
@@ -215,80 +256,84 @@ def visualize_page(
     # hide both axis
     ax.axis("off")
 
-    if interactive:
-        artists: List[patches.Patch] = []  # instantiate an empty list of patches (to be drawn on the page)
+    # if interactive:
+    #     artists: List[patches.Patch] = []  # instantiate an empty list of patches (to be drawn on the page)
 
     for block in page["blocks"]:
-        if not words_only:
-            rect = create_obj_patch(
-                block["geometry"], page["dimensions"], label="block", color=(0, 1, 0), linewidth=1, **kwargs
-            )
-            # add patch on figure
-            ax.add_patch(rect)
-            if interactive:
-                # add patch to cursor's artists
-                artists.append(rect)
+        blurred_image = blur_geometry(
+            block["geometry"], image, preserve_aspect_ratio=True, blur_radius=6
+        )
+        ax.imshow(np.array(blurred_image))  # Display the blurred block with some transparency
+        # if not words_only:
+        #     rect = create_obj_patch(
+        #         block["geometry"], page["dimensions"], label="block", color=(0, 1, 0), linewidth=1, **kwargs
+        #     )
+        #     # add patch on figure
+        #     ax.add_patch(rect)
+            # if interactive:
+            #     # add patch to cursor's artists
+            #     artists.append(rect)
 
-        for line in block["lines"]:
-            if not words_only:
-                rect = create_obj_patch(
-                    line["geometry"], page["dimensions"], label="line", color=(1, 0, 0), linewidth=1, **kwargs
-                )
-                ax.add_patch(rect)
-                if interactive:
-                    artists.append(rect)
+    #     for line in block["lines"]:
+    #         if not words_only:
+    #             rect = create_obj_patch(
+    #                 line["geometry"], page["dimensions"], label="line", color=(1, 0, 0), linewidth=1, **kwargs
+    #             )
+    #             ax.add_patch(rect)
+    #             if interactive:
+    #                 artists.append(rect)
 
-            for word in line["words"]:
-                rect = create_obj_patch(
-                    word["geometry"],
-                    page["dimensions"],
-                    label=f"{word['value']} (confidence: {word['confidence']:.2%})",
-                    color=(1, 1, 1),
-                    alpha=1,
-                    **kwargs,
-                )
-                ax.add_patch(rect)
-                if interactive:
-                    artists.append(rect)
-                elif add_labels:
-                    if len(word["geometry"]) == 5:
-                        text_loc = (
-                            int(page["dimensions"][1] * (word["geometry"][0] - word["geometry"][2] / 2)),
-                            int(page["dimensions"][0] * (word["geometry"][1] - word["geometry"][3] / 2)),
-                        )
-                    else:
-                        text_loc = (
-                            int(page["dimensions"][1] * word["geometry"][0][0]),
-                            int(page["dimensions"][0] * word["geometry"][0][1]),
-                        )
+    #         for word in line["words"]:
+    #             rect = create_obj_patch(
+    #                 word["geometry"],
+    #                 page["dimensions"],
+    #                 label=f"{word['value']} (confidence: {word['confidence']:.2%})",
+    #                 color=(1, 1, 1),
+    #                 alpha=1,
+    #                 **kwargs,
+    #             )
+    #             ax.add_patch(rect)
+    #             if interactive:
+    #                 artists.append(rect)
+    #             elif add_labels:
+    #                 if len(word["geometry"]) == 5:
+    #                     text_loc = (
+    #                         int(page["dimensions"][1] * (word["geometry"][0] - word["geometry"][2] / 2)),
+    #                         int(page["dimensions"][0] * (word["geometry"][1] - word["geometry"][3] / 2)),
+    #                     )
+    #                 else:
+    #                     text_loc = (
+    #                         int(page["dimensions"][1] * word["geometry"][0][0]),
+    #                         int(page["dimensions"][0] * word["geometry"][0][1]),
+    #                     )
 
-                    if len(word["geometry"]) == 2:
-                        # We draw only if boxes are in straight format
-                        ax.text(
-                            *text_loc,
-                            word["value"],
-                            size=10,
-                            alpha=0.5,
-                            color=(0, 0, 1),
-                        )
+    #                 if len(word["geometry"]) == 2:
+    #                     # We draw only if boxes are in straight format
+    #                     ax.text(
+    #                         *text_loc,
+    #                         word["value"],
+    #                         size=10,
+    #                         alpha=0.5,
+    #                         color=(0, 0, 1),
+    #                     )
 
-        if display_artefacts:
-            for artefact in block["artefacts"]:
-                rect = create_obj_patch(
-                    artefact["geometry"],
-                    page["dimensions"],
-                    label="artefact",
-                    color=(0.5, 0.5, 0.5),
-                    linewidth=1,
-                    **kwargs,
-                )
-                ax.add_patch(rect)
-                if interactive:
-                    artists.append(rect)
+    #     if display_artefacts:
+    #         for artefact in block["artefacts"]:
+    #             rect = create_obj_patch(
+    #                 artefact["geometry"],
+    #                 page["dimensions"],
+    #                 label="artefact",
+    #                 color=(0.5, 0.5, 0.5),
+    #                 linewidth=1,
+    #                 **kwargs,
+    #             )
+    #             ax.add_patch(rect)
+    #             if interactive:
+    #                 artists.append(rect)
 
-    if interactive:
-        # Create mlp Cursor to hover patches in artists
-        mplcursors.Cursor(artists, hover=2).connect("add", lambda sel: sel.annotation.set_text(sel.artist.get_label()))
+    # if interactive:
+    #     # Create mlp Cursor to hover patches in artists
+    #     mplcursors.Cursor(artists, hover=2).connect("add", lambda sel: sel.annotation.set_text(sel.artist.get_label()))
     fig.tight_layout(pad=0.0)
 
     return fig
