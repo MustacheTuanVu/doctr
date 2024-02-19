@@ -278,7 +278,7 @@ class Page(Element):
             preserve_aspect_ratio: pass True if you passed True to the predictor
             **kwargs: additional keyword arguments passed to the matplotlib.pyplot.show method
         """
-        print('here 2')
+        # print('here 2')
         visualize_page(self.export(), self.page, interactive=interactive, preserve_aspect_ratio=preserve_aspect_ratio)
 
         # Convert the plot to a PNG image in memory
@@ -288,6 +288,7 @@ class Page(Element):
 
         # Encode the PNG image as base64
         base64_image = base64.b64encode(buffer.read()).decode('utf-8')
+        plt.close()
         return base64_image
 
         # plt.show(**kwargs)

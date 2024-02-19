@@ -166,47 +166,21 @@ def get_colors(num_colors: int) -> List[Tuple[float, float, float]]:
         colors.append(colorsys.hls_to_rgb(hue, lightness, saturation))
     return colors
 
-def blur_geometry(
-    geometry: BoundingBox,
-    page_image: np.ndarray,
-    preserve_aspect_ratio: bool = False,
-    blur_radius: int = 2
-) -> Image:
-    """Apply Gaussian blur to the region defined by the geometry on the page image.
-
-    Args:
-        geometry: bounding box of the region to be blurred
-        page_image: numpy array representing the page image
-        preserve_aspect_ratio: whether to preserve the aspect ratio of the bounding box
-        blur_radius: radius of the Gaussian blur kernel
-
-    Returns:
-        PIL Image with the specified region blurred
-    """
-    # Unpack
-    height, width = page_image.shape[:2]
+def gaussian_blur_region(image: Image, geometry: BoundingBox, page_dimensions: Tuple[int, int], radius: float = 2) -> Image:
+    """Applies Gaussian blur to a specific region defined by geometry."""
+    # Unpack geometry
     (xmin, ymin), (xmax, ymax) = geometry
-    
-    # Switch to absolute coords
-    if preserve_aspect_ratio:
-        width = height = max(height, width)
-    xmin, w = xmin * width, (xmax - xmin) * width
-    ymin, h = ymin * height, (ymax - ymin) * height
-
-    # Convert numpy array to PIL Image
-    page_pil = Image.fromarray(page_image)
-    
-    # Define region to blur
-    region = (int(xmin), int(ymin), int(xmin + w), int(ymin + h))
-    
-    # Apply Gaussian blur to the region
-    blurred_image = page_pil.crop(region)
-    blurred_image = blurred_image.filter(ImageFilter.GaussianBlur(blur_radius))
-    
-    # Paste the blurred region back onto the original image
-    page_pil.paste(blurred_image, region)
-    
-    return page_pil
+    height, width = page_dimensions
+    # Calculate region coordinates in absolute values
+    abs_xmin, abs_ymin = int(xmin * width), int(ymin * height)
+    abs_xmax, abs_ymax = int(xmax * width), int(ymax * height)
+    # Extract region
+    region = image.crop((abs_xmin, abs_ymin, abs_xmax, abs_ymax))
+    # Apply Gaussian blur
+    blurred_region = region.filter(ImageFilter.GaussianBlur(radius))
+    # Paste blurred region back onto original image
+    image.paste(blurred_region, (abs_xmin, abs_ymin, abs_xmax, abs_ymax))
+    return image
 
 def visualize_page(
     page: Dict[str, Any],
@@ -245,95 +219,31 @@ def visualize_page(
     -------
         the matplotlib figure
     """
+
+    # Convert np array image to PIL Image
+    pil_image = Image.fromarray(image)
+
+    # Apply Gaussian blur to each block
+    for block in page["blocks"]:
+        pil_image = gaussian_blur_region(pil_image, block["geometry"], page["dimensions"], radius=6)
+
+        if not words_only:
+            # Apply Gaussian blur to each line within the block
+            for line in block["lines"]:
+                pil_image = gaussian_blur_region(pil_image, line["geometry"], page["dimensions"], radius=1)
+
+    # Convert back to np array
+    blurred_image_np = np.array(pil_image)
+
     # Get proper scale and aspect ratio
     h, w = image.shape[:2]
-    print(h)
     size = (w/100, h/100)
-    print(size)
     fig, ax = plt.subplots(figsize=size)
     # Display the image
-    ax.imshow(image)
+    ax.imshow(blurred_image_np)
     # hide both axis
     ax.axis("off")
 
-    # if interactive:
-    #     artists: List[patches.Patch] = []  # instantiate an empty list of patches (to be drawn on the page)
-
-    for block in page["blocks"]:
-        blurred_image = blur_geometry(
-            block["geometry"], image, preserve_aspect_ratio=True, blur_radius=6
-        )
-        ax.imshow(np.array(blurred_image))  # Display the blurred block with some transparency
-        # if not words_only:
-        #     rect = create_obj_patch(
-        #         block["geometry"], page["dimensions"], label="block", color=(0, 1, 0), linewidth=1, **kwargs
-        #     )
-        #     # add patch on figure
-        #     ax.add_patch(rect)
-            # if interactive:
-            #     # add patch to cursor's artists
-            #     artists.append(rect)
-
-    #     for line in block["lines"]:
-    #         if not words_only:
-    #             rect = create_obj_patch(
-    #                 line["geometry"], page["dimensions"], label="line", color=(1, 0, 0), linewidth=1, **kwargs
-    #             )
-    #             ax.add_patch(rect)
-    #             if interactive:
-    #                 artists.append(rect)
-
-    #         for word in line["words"]:
-    #             rect = create_obj_patch(
-    #                 word["geometry"],
-    #                 page["dimensions"],
-    #                 label=f"{word['value']} (confidence: {word['confidence']:.2%})",
-    #                 color=(1, 1, 1),
-    #                 alpha=1,
-    #                 **kwargs,
-    #             )
-    #             ax.add_patch(rect)
-    #             if interactive:
-    #                 artists.append(rect)
-    #             elif add_labels:
-    #                 if len(word["geometry"]) == 5:
-    #                     text_loc = (
-    #                         int(page["dimensions"][1] * (word["geometry"][0] - word["geometry"][2] / 2)),
-    #                         int(page["dimensions"][0] * (word["geometry"][1] - word["geometry"][3] / 2)),
-    #                     )
-    #                 else:
-    #                     text_loc = (
-    #                         int(page["dimensions"][1] * word["geometry"][0][0]),
-    #                         int(page["dimensions"][0] * word["geometry"][0][1]),
-    #                     )
-
-    #                 if len(word["geometry"]) == 2:
-    #                     # We draw only if boxes are in straight format
-    #                     ax.text(
-    #                         *text_loc,
-    #                         word["value"],
-    #                         size=10,
-    #                         alpha=0.5,
-    #                         color=(0, 0, 1),
-    #                     )
-
-    #     if display_artefacts:
-    #         for artefact in block["artefacts"]:
-    #             rect = create_obj_patch(
-    #                 artefact["geometry"],
-    #                 page["dimensions"],
-    #                 label="artefact",
-    #                 color=(0.5, 0.5, 0.5),
-    #                 linewidth=1,
-    #                 **kwargs,
-    #             )
-    #             ax.add_patch(rect)
-    #             if interactive:
-    #                 artists.append(rect)
-
-    # if interactive:
-    #     # Create mlp Cursor to hover patches in artists
-    #     mplcursors.Cursor(artists, hover=2).connect("add", lambda sel: sel.annotation.set_text(sel.artist.get_label()))
     fig.tight_layout(pad=0.0)
 
     return fig
